@@ -1,11 +1,11 @@
-# Aniting  ALERTA DE README ECHO CON IA XD
+# Aniting
 
 **Aniting** es una aplicación de escritorio moderna y ligera diseñada para disfrutar de tu anime favorito en español, directamente desde tu PC.
 
 ---
 
 ## ✨ Características principaless
-- **Todo en Español:** Interfaz y contenido totalmente en nuestro idioma.
+- **Todo en Español:** Interfaz y contenido totalmente en nuestro idioma. (Paginas de manga y h en ingles)
 - **Fuentes Externas:** Conexión con servidores externos para servir video.
 - **Interfaz:** Diseño oscuro, fluido y fácil de usar, optimizado para la mejor experiencia visual.
 - **Multiplataforma:** Disponible para Windows proximamente para MacOS y Linux.
