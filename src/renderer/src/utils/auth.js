@@ -1,0 +1,132 @@
+// export const ANILIST_CLIENT_ID = () => {
+//   const url = window.location.href;
+//   if (url.includes("localhost")) {
+//     console.log("Localhost detected");
+//     return 20876;
+//   } else return 20866;
+// };
+
+// export const ANILIST_CLIENT_ID = 20876;
+// export const ANILIST_CLIENT_ID = 20866;
+export const ANILIST_CLIENT_ID = window.location.href.includes('localhost') ? 34991 : 34991
+export const anilistAuthUrl = `https://anilist.co/api/v2/oauth/authorize?client_id=${ANILIST_CLIENT_ID}&response_type=token`
+
+export async function getAnilistProfile(anilistToken) {
+  try {
+    if (!localStorage.getItem('anilist_token')) return null
+
+    // Fetch user data from AniList API
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${anilistToken}`
+      },
+      body: JSON.stringify({
+        query: `
+            query {
+              Viewer {
+                id
+                name
+                about
+                avatar {
+                  large
+                }
+                statistics {
+                  anime {
+                    count
+                    meanScore
+                    minutesWatched
+                    episodesWatched
+                  }
+                }
+              }
+            }
+          `
+      })
+    })
+
+    if (response.status === 429) {
+      throw new Error(
+        'Too many requests to the API. You are being rate-limited. Please wait a minute and refresh the page.'
+      )
+    } else if (!response.ok) {
+      // const errorData = await response.json();
+      let { errors: errorData } = await response.json()
+      errorData = errorData[0]
+
+      throw new Error(`Error ${response.status}: ${response.statusText} - ${errorData.message}`)
+    }
+
+    const data = await response.json()
+    localStorage.setItem('anilist_id', data.data.Viewer.id)
+    localStorage.setItem('anilist_name', data.data.Viewer.name)
+
+    return data.data.Viewer
+  } catch (error) {
+    console.log('Error in getAnilistProfile: ', error)
+    throw new Error(error)
+  }
+}
+
+export async function getAnilistUserLists(userId) {
+  try {
+    const query = `
+      query ($userId: Int) {
+        MediaListCollection(userId: $userId, type: ANIME) {
+          lists {
+            name
+            status
+            entries {
+              id
+              status
+              score
+              progress
+              media {
+                id
+                idMal
+                title {
+                  romaji
+                  english
+                  native
+                }
+                coverImage {
+                  large
+                  extraLarge
+                  color
+                }
+                format
+                episodes
+                averageScore
+                popularity
+                status
+              }
+            }
+          }
+        }
+      }
+    `
+
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: query,
+        variables: { userId: parseInt(userId) }
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(`AniList API Error: ${errorData.errors?.[0]?.message || response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data.data.MediaListCollection.lists
+  } catch (error) {
+    console.error('Error fetching user lists:', error)
+    throw new Error(error)
+  }
+}
