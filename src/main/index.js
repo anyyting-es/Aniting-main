@@ -405,6 +405,9 @@ app.whenReady().then(() => {
   ipcMain.on('install-update', () => {
     autoUpdater.quitAndInstall(false, true)
   })
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion()
+  })
 
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient('aniting2', process.execPath, [path.resolve(process.argv[1])])

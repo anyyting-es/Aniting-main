@@ -37,6 +37,7 @@ const api = {
     ipcRenderer.send('broadcast-discord-rpc', value)
   },
   invoke: (channel, data) => ipcRenderer.invoke(channel, data),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   // Auto-updater
   checkForUpdates: () => ipcRenderer.send('check-for-updates'),
   downloadUpdate: () => ipcRenderer.send('download-update'),

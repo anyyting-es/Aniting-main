@@ -2,17 +2,90 @@ import { Button, Theme } from '@radix-ui/themes'
 import { Link, Outlet, useNavigate, useNavigation } from 'react-router-dom'
 import Loader from './Loader'
 import { toast, Toaster } from 'sonner'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Header from '../components/Header'
 import { ReactLenis } from '@studio-freight/react-lenis'
-import { DownloadIcon, GitHubLogoIcon } from '@radix-ui/react-icons'
+import { DownloadIcon } from '@radix-ui/react-icons'
 import { useAnitingContext } from '../utils/ContextProvider'
+
+function StartupUpdateToast({ info, onDownload, onDismiss }) {
+  const [status, setStatus] = useState('available') // available | downloading | ready
+  const [percent, setPercent] = useState(0)
+
+  useEffect(() => {
+    const api = window.api
+    if (!api) return
+    api.onUpdateDownloadProgress((progress) => {
+      setStatus('downloading')
+      setPercent(Math.round(progress.percent || 0))
+    })
+    api.onUpdateDownloaded(() => {
+      setStatus('ready')
+    })
+    api.onUpdateError(() => {
+      setStatus('available') // allow retry
+    })
+  }, [])
+
+  return (
+    <div className="font-space-mono text-sm">
+      <div className="mb-1 font-bold">¡Nueva versión disponible!</div>
+      <div className="text-xs text-gray-300">
+        Versión disponible: <span className="font-semibold">v{info?.version}</span>
+      </div>
+      {status === 'downloading' && (
+        <div className="mt-2">
+          <div className="mb-1 text-xs text-gray-400">Descargando... {percent}%</div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-700">
+            <div
+              className="h-full rounded-full bg-indigo-500 transition-all duration-300"
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      )}
+      <div className="mt-2 flex gap-2">
+        {status === 'available' && (
+          <Button
+            size="1"
+            color="green"
+            variant="soft"
+            onClick={() => {
+              setStatus('downloading')
+              setPercent(0)
+              window.api.downloadUpdate()
+            }}
+          >
+            <DownloadIcon className="mr-1" />
+            Descargar
+          </Button>
+        )}
+        {status === 'ready' && (
+          <Button
+            size="1"
+            color="green"
+            variant="soft"
+            onClick={() => window.api.installUpdate()}
+          >
+            Instalar y reiniciar
+          </Button>
+        )}
+        {status === 'available' && (
+          <Button size="1" variant="ghost" color="gray" onClick={onDismiss}>
+            Más tarde
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 export default function AppLayout({ props }) {
   const navigation = useNavigation()
   const isLoading = navigation.state === 'loading'
   const [theme, setTheme] = useState('dark')
   const { checkForUpdates, smoothScroll } = useAnitingContext()
+  const startupCheckDone = useRef(false)
 
   function toggleTheme() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
@@ -36,56 +109,30 @@ export default function AppLayout({ props }) {
     }
   }, [navigate])
 
-  /* ------------- CHECK LATEST GITHUB RELEASE ------------ */
-  const owner = 'anyyting-es' // Replace with the repository owner
-  const repo = 'Aniting-main' // Replace with the repository name
-  const currentVersion = 'v2.6.4' // Replace with the current version
-
-  const getLatestRelease = async () => {
-    try {
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.tag_name !== currentVersion) {
-        // console.log(chalk.blue('New version available:', data.tag_name))
-        // console.log('Release notes:', data.body)
-        // console.log(chalk.yellow('Download URL: https://github.com/anyyting-es/Aniting-main/releases'))
-        toast.success('¡Nueva versión disponible!', {
-          // description: `Download the latest version from GitHub: ${data.html_url}`,
-          description: (
-            <div className="">
-              Versión actual: <span className="font-semibold">{currentVersion}</span>
-              <br />
-              Última versión: <span className="font-semibold">{data.tag_name}</span>
-              <br />
-              <div className="mt-2">
-                <Button
-                  size={'1'}
-                  color="green"
-                  variant="soft"
-                  onClick={() => window.open(`${data.html_url}`, '_blank')}
-                >
-                  <DownloadIcon className="mr-2" />
-                  Descargar
-                </Button>
-              </div>
-            </div>
-          ),
-          icon: <GitHubLogoIcon />
-        })
-      }
-    } catch (error) {
-      console.error('Error fetching latest release:', error)
-    }
-  }
-
+  /* ------------- CHECK FOR UPDATES ON STARTUP (electron-updater) ------------ */
   useEffect(() => {
-    if (checkForUpdates) getLatestRelease()
+    if (!checkForUpdates || startupCheckDone.current) return
+    startupCheckDone.current = true
+
+    const api = window.api
+    if (!api?.onUpdateAvailable) return
+
+    let toastId = null
+
+    const handleUpdateAvailable = (info) => {
+      toastId = toast(
+        <StartupUpdateToast
+          info={info}
+          onDismiss={() => toast.dismiss(toastId)}
+        />,
+        { duration: Infinity }
+      )
+    }
+
+    api.onUpdateAvailable(handleUpdateAvailable)
+
+    // Trigger the check
+    api.checkForUpdates()
   }, [checkForUpdates])
 
   // const MainComponent = () => {

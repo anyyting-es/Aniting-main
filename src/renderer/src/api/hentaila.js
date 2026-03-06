@@ -91,17 +91,6 @@ function extractM3U8FromVIP(vipUrl) {
 
 export async function hentailaSearch(query) {
   try {
-    // Hentaila doesn't have a pure API, so we scrape the search page '__data.json'
-    // const params = new URLSearchParams({ keyword: query })
-    // const url = `${BASE_URL}/directorio/__data.json?${params.toString()}`
-
-    // NOTE: /directorio in Hentaila is a bit tricky, let's just fetch it as JSON.
-    // Wait, the technical guide said we can use /catalogo for pagination, but it might not support search keyword easily.
-    // Another approach: Fetch the HTML page and extract ___data.json or just fetch the /directorio html.
-
-    // As per the technical guide, the hub/__data.json is where we can find SvelteKit data.
-    // But hentaila search might work via /api or just /directorio endpoint. Let's try raw fetch or just rely on the slug exact match.
-    // For our autoSelect logic, it's easier to simply guess the slug by replacing spaces with hyphens:
     let slug = query
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
