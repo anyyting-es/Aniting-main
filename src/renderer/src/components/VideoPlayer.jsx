@@ -281,6 +281,19 @@ export default function VideoPlayer() {
                 setEpisodeIdPayload(matchedEp.id)
                 setHasDub(matchedEp.hasDub || false)
                 resolved = true
+
+                // Populate episode metadata (description, title, next episode info)
+                if (matchedEp.title) setDynEpisodeTitle(matchedEp.title)
+                if (matchedEp.description) setDynEpisodeDescription(matchedEp.description)
+
+                const nextEp = details.episodes.find((ep) => ep.number === epNum + 1)
+                if (nextEp) {
+                  setDynNextEpisodeTitle(nextEp.title || `Episodio ${epNum + 1}`)
+                  setDynNextEpisodeThumbnail(nextEp.image || '')
+                } else {
+                  setDynNextEpisodeTitle(`Episodio ${epNum + 1}`)
+                  setDynNextEpisodeThumbnail('')
+                }
               }
             }
           }
@@ -768,11 +781,12 @@ export default function VideoPlayer() {
       hlsRef.current = null
     }
 
+    const nextNumber = (episodeNumber || 0) + 1
+
     if (streamType === 'hls' && episodeIdPayload) {
       try {
         const parsed = JSON.parse(episodeIdPayload)
-        const nextNumber = (parsed.number || episodeNumber) + 1
-        const nextEpId = JSON.stringify({ ...parsed, number: nextNumber })
+        const nextEpId = JSON.stringify({ ...parsed, number: (parsed.number || episodeNumber) + 1 })
 
         navigate('/video', {
           state: {
@@ -791,6 +805,7 @@ export default function VideoPlayer() {
             animeCoverImage,
             discordRpcActivity,
             animeId,
+            malId,
             progress: Math.max(episodeNumber, progress || 0),
             totalEpisodes,
             hasDub: hasDub,
@@ -798,17 +813,47 @@ export default function VideoPlayer() {
             episodeDescription: '',
             nextEpisodeTitle: '',
             nextEpisodeThumbnail: '',
-            audioTypeHint: audioType
+            audioTypeHint: audioType,
+            isAdult
           },
           replace: true
         })
+        return
       } catch {
-        // Fallback if episodeIdPayload can't be parsed
-        if (animeId) navigate(`/anime/${animeId}`)
-        else navigate(-1)
+        // Fall through to search-based fallback
       }
+    }
+
+    // Fallback: use search-based auto-resolution for next episode
+    if (streamType === 'hls') {
+      navigate('/video', {
+        state: {
+          pendingAutoStream: true,
+          streamType: 'hls',
+          streamUrl: null,
+          episodeTitle: `Episodio ${nextNumber}`,
+          episodeNumber: nextNumber,
+          animeTitle,
+          animeName: animeNameProp || animeTitle,
+          animeRomaji: animeRomaji || animeTitle,
+          animeEnglish: animeEnglish || '',
+          bannerImage,
+          animeCoverImage,
+          discordRpcActivity,
+          animeId,
+          malId,
+          progress: Math.max(episodeNumber, progress || 0),
+          totalEpisodes,
+          isAdult,
+          episodeDescription: '',
+          nextEpisodeTitle: '',
+          nextEpisodeThumbnail: '',
+          audioTypeHint: audioType
+        },
+        replace: true
+      })
     } else {
-      // No episodeIdPayload — go back to anime page
+      // Torrent streams don't have next-episode resolution
       if (animeId) navigate(`/anime/${animeId}`)
       else navigate(-1)
     }

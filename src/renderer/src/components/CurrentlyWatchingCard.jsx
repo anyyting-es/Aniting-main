@@ -106,6 +106,7 @@ function CurrentlyWatchingCard({ data }) {
         bannerImage: data?.bannerImage || '',
         animeCoverImage: data?.coverImage?.extraLarge || data?.coverImage?.medium || '',
         animeId: data?.id,
+        malId: data?.idMal || null,
         progress: data?.mediaListEntry?.progress || 0,
         totalEpisodes: data?.episodes || 0,
         isAdult: data?.isAdult || false,

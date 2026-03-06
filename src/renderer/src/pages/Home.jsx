@@ -156,6 +156,7 @@ export default function Home() {
     }
   }, [data])
   const [showAllWatching, setShowAllWatching] = useState(false)
+  const [showAllLocalWatching, setShowAllLocalWatching] = useState(false)
 
   return (
     <div className="select-none font-space-mono tracking-tight">
@@ -317,7 +318,7 @@ export default function Home() {
             )}
           </div>
           <div
-            className={`grid animate-fade grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-3 gap-y-3 overflow-hidden px-2 pl-4 transition-all duration-500 ${showAllWatching ? 'max-h-[2000px]' : 'max-h-[185px]'}`}
+            className={`grid animate-fade grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-3 gap-y-3 overflow-hidden px-2 pl-4 transition-all duration-500 ${showAllWatching ? 'max-h-[2000px]' : 'max-h-[185px]'}`}
           >
             {[...currentlyWatching]
               .filter((anime) => {
@@ -364,14 +365,20 @@ export default function Home() {
             <div className="mx-3 mt-4">
               <div className="mb-2 ml-5 flex items-center justify-between border-b border-gray-700 pb-1 pr-4 font-space-mono text-lg font-bold tracking-wider">
                 <span>Seguir Viendo</span>
+                {localWatching.length > 6 && (
+                  <button
+                    onClick={() => setShowAllLocalWatching(!showAllLocalWatching)}
+                    className="text-xs font-medium text-gray-400 transition-colors hover:text-white"
+                  >
+                    {showAllLocalWatching ? 'Ver menos' : 'Ver más'}
+                  </button>
+                )}
               </div>
-              <div className="grid max-h-[185px] animate-fade grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-3 gap-y-3 overflow-hidden px-2 pl-4">
+              <div className={`grid animate-fade grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-x-3 gap-y-3 overflow-hidden px-2 pl-4 transition-all duration-500 ${showAllLocalWatching ? 'max-h-[2000px]' : 'max-h-[185px]'}`}>
                 {localWatching
                   .filter((entry) => {
                     const latestPlayback = getLatestPlaybackForAnime(entry.id)
                     const isFinished = latestPlayback && latestPlayback.percentage >= 80
-                    // For local, we don't always have nextAiringEpisode easily available without a full fetch, 
-                    // but we can at least check against totalEpisodes if available
                     if (isFinished && entry.totalEpisodes && entry.progress >= entry.totalEpisodes) {
                       return false
                     }
